@@ -31,7 +31,6 @@ __copyright__ = '(C) 2018 by Olivier Dalang / SPC'
 __revision__ = '$Format:%H$'
 
 from qgis.core import QgsProcessingProvider
-from .spc_proc_alg_algorithm import SpcProcessingAlgsAlgorithm
 
 
 class SpcProcessingAlgsProvider(QgsProcessingProvider):
@@ -40,7 +39,8 @@ class SpcProcessingAlgsProvider(QgsProcessingProvider):
         QgsProcessingProvider.__init__(self)
 
         # Load algorithms
-        self.alglist = [SpcProcessingAlgsAlgorithm()]
+        self.alglist = [
+        ]
 
     def unload(self):
         """
