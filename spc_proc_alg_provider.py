@@ -32,6 +32,7 @@ __revision__ = '$Format:%H$'
 
 from qgis.core import QgsProcessingProvider
 
+from .algorithms.utils.pdf_export import ProcessingPDFAlgorithm
 
 class SpcProcessingAlgsProvider(QgsProcessingProvider):
 
@@ -40,6 +41,7 @@ class SpcProcessingAlgsProvider(QgsProcessingProvider):
 
         # Load algorithms
         self.alglist = [
+            ProcessingPDFAlgorithm(),
         ]
 
     def unload(self):
