@@ -33,6 +33,7 @@ __revision__ = '$Format:%H$'
 from qgis.core import QgsProcessingProvider
 
 from .algorithms.utils.pdf_export import ProcessingPDFAlgorithm
+from .algorithms.utils.expression_builder import ExpressionBuilder
 from .algorithms.cyclones.points_to_path_with_m import PointsToPaths
 
 class SpcProcessingAlgsProvider(QgsProcessingProvider):
@@ -43,6 +44,7 @@ class SpcProcessingAlgsProvider(QgsProcessingProvider):
         # Load algorithms
         self.alglist = [
             ProcessingPDFAlgorithm(),
+            ExpressionBuilder(),
             PointsToPaths(),
         ]
 
