@@ -30,23 +30,26 @@ __copyright__ = '(C) 2018 by Olivier Dalang / SPC'
 
 __revision__ = '$Format:%H$'
 
-from qgis.core import QgsProcessingProvider
+from qgis.core import QgsProcessingProvider, QgsMessageLog
 
-from .algorithms.utils.pdf_export import ProcessingPDFAlgorithm
-from .algorithms.utils.expression_builder import ExpressionBuilder
-from .algorithms.cyclones.points_to_path_with_m import PointsToPaths
+from .algorithms import project, utils, hacks, tcrm
+from .algorithms.base import SpcAlgorithm
+
+import sys, inspect
 
 class SpcProcessingAlgsProvider(QgsProcessingProvider):
 
     def __init__(self):
         QgsProcessingProvider.__init__(self)
 
-        # Load algorithms
-        self.alglist = [
-            ProcessingPDFAlgorithm(),
-            ExpressionBuilder(),
-            PointsToPaths(),
-        ]
+        self.alglist = []
+
+        # Load all subclasses of SpcAlgorithm of the following modules
+        for module in [project, utils, hacks, tcrm]:
+            for cls in module.__dict__.values():
+                QgsMessageLog.logMessage(str(cls))
+                if isinstance(cls, type) and cls is not SpcAlgorithm and issubclass(cls, SpcAlgorithm):
+                    self.alglist.append(cls())
 
     def unload(self):
         """

@@ -57,8 +57,10 @@ from qgis.core import (QgsExpression,
 
 from processing.algs.qgis.QgisAlgorithm import QgisAlgorithm
 
+from .base import SpcAlgorithm
 
-class PointsToPaths(QgisAlgorithm):
+
+class PointsToPathsWithM(SpcAlgorithm):
 
     INPUT = 'INPUT'
     GROUP_FIELD = 'GROUP_FIELD'
@@ -68,17 +70,12 @@ class PointsToPaths(QgisAlgorithm):
     OUTPUT = 'OUTPUT'
     OUTPUT_TEXT_DIR = 'OUTPUT_TEXT_DIR'
 
-    def group(self):
-        return self.tr('Vector creation')
-
-    def groupId(self):
-        return 'vectorcreation'
+    def tags(self):
+        return self.tr('join,points,lines,connect').split(',')
 
     def __init__(self):
         super().__init__()
 
-    def tags(self):
-        return self.tr('join,points,lines,connect').split(',')
 
     def initAlgorithm(self, config=None):
         self.addParameter(QgsProcessingParameterFeatureSource(self.INPUT,
@@ -98,12 +95,6 @@ class PointsToPaths(QgisAlgorithm):
         output_dir_param = QgsProcessingParameterFolderDestination(self.OUTPUT_TEXT_DIR, self.tr('Directory for text output'), optional=True)
         output_dir_param.setCreateByDefault(False)
         self.addParameter(output_dir_param)
-
-    def name(self):
-        return 'pointstopathwithm'
-
-    def displayName(self):
-        return self.tr('Points to path with M')
 
     def processAlgorithm(self, parameters, context, feedback):
         source = self.parameterAsSource(parameters, self.INPUT, context)

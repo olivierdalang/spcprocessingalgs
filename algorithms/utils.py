@@ -41,7 +41,9 @@ from qgis.core import (QgsProcessing,
 
 import time
 
-class ExpressionBuilder(QgsProcessingAlgorithm):
+from .base import SpcAlgorithm
+
+class ExpressionBuilder(SpcAlgorithm):
 
     _RANGE = range(5)
 
@@ -72,21 +74,3 @@ class ExpressionBuilder(QgsProcessingAlgorithm):
         QgsMessageLog.logMessage('Result is {}'.format(string))
 
         return {self.OUTPUT: string}
-
-    def name(self):
-        return 'Text replace'
-
-    def displayName(self):
-        return self.tr(self.name())
-
-    def group(self):
-        return self.tr(self.groupId())
-
-    def groupId(self):
-        return 'Utils'
-
-    def tr(self, string):
-        return QCoreApplication.translate('Processing', string)
-
-    def createInstance(self):
-        return ExpressionBuilder()
