@@ -299,6 +299,95 @@ class ReplaceLayerInProject(SpcAlgorithm):
         # done !!
         return {self.OUTPUT: output_file}
 
+class SetVariableInProject(SpcAlgorithm):
+    """
+    SetVariableInProject sets an user variable in a project file.
+
+    It can be useful in conjunction with ExportPDF to automate production of PDF files.
+    """
+
+    INPUT = 'INPUT'
+    VARIABLE_NAME = 'VARIABLE_NAME'
+    VARIABLE_VALUE = 'VARIABLE_VALUE'
+    OUTPUT = 'OUTPUT'
+
+    def initAlgorithm(self, config):
+
+        self.addParameter(
+            QgsProcessingParameterFile(self.INPUT,
+                                        'Initial QGIS project',
+                                        behavior=QgsProcessingParameterFile.File,
+                                        extension='qgs')
+        )
+
+        self.addParameter(
+            QgsProcessingParameterString(self.VARIABLE_NAME,
+                                       'Variable name')
+        )
+
+        self.addParameter(
+            QgsProcessingParameterMapLayer(self.VARIABLE_VALUE,
+                                       'Variable value')
+        )
+
+        self.addParameter(
+            QgsProcessingParameterFileDestination(self.OUTPUT,
+                                                  'Modified QGIS project',
+                                                  'QGIS project files (*.qgs)')
+        )
+
+    def processAlgorithm(self, parameters, context, feedback):
+        # This implementation writes to the project XML directly
+
+        """
+        Here is where the processing itself takes place.
+        """
+
+        # get the parameter values
+        input_file = self.parameterAsFile(parameters, self.INPUT, context)
+        v_name = self.parameterAsString(parameters, self.VARIABLE_NAME, context)
+        v_value = self.parameterAsString(parameters, self.VARIABLE_VALUE, context)
+        output_file = self.parameterAsFile(parameters, self.OUTPUT, context)
+
+        tree = et.parse(input_file)
+        root = tree.getroot()
+
+        # Get the variables as a dict
+        variable_names_node = root.find("properties/Variables/variableNames")
+        variable_values_node = root.find("properties/Variables/variableValues")
+        variable_names = [n.text for n in variable_names_node.findall("value")]
+        variable_values = [n.text for n in variable_values_node.findall("value")]
+
+        variables = dict(zip(variable_names, variable_values))
+
+        feedback.pushInfo("variables were {}".format(str(variables)))
+
+        # Modify the dict
+        variables[v_name] = v_value
+        
+        feedback.pushInfo("variables are now {}".format(str(variables)))
+        
+        # Remove the variables node
+        variable_names_node.clear()
+        variable_names_node.attrib['type'] = "QStringList"
+        variable_values_node.clear()
+        variable_values_node.attrib['type'] = "QStringList"
+
+        # Readd all variables
+        for k,v in variables.items():
+            name_element = et.Element('value')
+            name_element.text = k
+            variable_names_node.insert(0,name_element)
+
+            value_element = et.Element('value')
+            value_element.text = v
+            variable_values_node.insert(0,value_element)
+
+        tree.write(output_file)
+
+        # done !!
+        return {self.OUTPUT: output_file}
+
 class ExportPDF(SpcAlgorithm):
     """
     ExportPDF 
