@@ -306,7 +306,7 @@ class ExportPDF(SpcAlgorithm):
 
     BASE_PROJECT = 'BASE_PROJECT'
     LAYOUT_NAME = 'LAYOUT_NAME'
-    OUTPUT_FOLDER = 'OUTPUT_FOLDER'
+    OUTPUT = 'OUTPUT'
 
     def initAlgorithm(self, config):
         """
@@ -332,13 +332,10 @@ class ExportPDF(SpcAlgorithm):
         )
 
         self.addParameter(
-            QgsProcessingParameterFile(
-                self.OUTPUT_FOLDER,
-                self.tr('Output folder'),
-                behavior=QgsProcessingParameterFile.Folder,
-                extension='pdf',
-                optional=False,
-            )
+            QgsProcessingParameterFileDestination(
+                self.OUTPUT,
+                'PDF File',
+                'PDF files (*.pdf)')
         )
 
     def processAlgorithm(self, parameters, context, feedback):
@@ -349,18 +346,11 @@ class ExportPDF(SpcAlgorithm):
         # get the parameter values
         base_project = self.parameterAsFile(parameters, self.BASE_PROJECT, context)
         layout_name = self.parameterAsString(parameters, self.LAYOUT_NAME, context)
-        output_folder = self.parameterAsFile(parameters, self.OUTPUT_FOLDER, context)
+        output = self.parameterAsFile(parameters, self.OUTPUT, context)
 
         # instantiation of the project
         project_instance = QgsProject()
         project_instance.read(base_project)
-
-        # find next available file name
-        i=0
-        output_file = None
-        while not output_file or os.path.exists(output_file):
-            i+=1
-            output_file = os.path.join(output_folder, str(i).zfill(3)+'.pdf')
 
         # actual export of the PDF
         if layout_name:
@@ -369,10 +359,10 @@ class ExportPDF(SpcAlgorithm):
             layout = project_instance.layoutManager().layouts()[0]
         assert(layout is not None, "No layout found")
         export = QgsLayoutExporter(layout)
-        export.exportToPdf(output_file, QgsLayoutExporter.PdfExportSettings())
+        export.exportToPdf(output, QgsLayoutExporter.PdfExportSettings())
 
         # debug
-        project_instance.write(output_file+"debug.qgs")
+        # project_instance.write(output_file+"debug.qgs")
 
         # done !!
         return {}
