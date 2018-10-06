@@ -265,8 +265,8 @@ class ReplaceLayerInProject(SpcAlgorithm):
         if new_layer.dataProvider().name() == 'memory':
             t = QTemporaryDir()
             t.setAutoRemove(False)
-            new_layer_source = os.path.join(t.path(),'t.geojson')
-            QgsVectorFileWriter.writeAsVectorFormat(new_layer,new_layer_source,"ut8",new_layer.crs(),"GeoJSON")
+            new_layer_source = os.path.join(t.path(),'t.gpkg')
+            QgsVectorFileWriter.writeAsVectorFormat(new_layer,new_layer_source,"utf8",new_layer.crs(),"GPKG")
         else:
             new_layer_source = new_layer.source()
 
