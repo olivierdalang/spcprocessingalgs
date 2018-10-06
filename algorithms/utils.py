@@ -53,7 +53,7 @@ class ExpressionBuilder(SpcAlgorithm):
 
     def initAlgorithm(self, config):
         self.addParameter(
-            QgsProcessingParameterString(self.ORIGINAL, self.tr('Original string - use {0}, {1}, {2}, ... to be replaced by inputs'))
+            QgsProcessingParameterString(self.ORIGINAL, self.tr('Original string - use {0}, {1}, {2}, ... to be replaced by inputs'), multiLine=True)
         )
 
         for i in self._RANGE:
