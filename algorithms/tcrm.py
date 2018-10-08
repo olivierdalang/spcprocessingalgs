@@ -81,20 +81,21 @@ import shutil
 import subprocess
 import configparser
 
+from .base import SpcAlgorithm
 
-
-class TCRMAlgorithm(QgsProcessingAlgorithm):
+class TCRMAlgorithm(SpcAlgorithm):
 
     INPUT = 'INPUT'
     FIELD_NUM = 'FIELD_NUM'
     FIELD_DATE = 'FIELD_DATE'
     FIELD_PRESSURE = 'FIELD_PRESSURE'
     FIELD_RMAX = 'FIELD_RMAX'
+    DATE_FORMAT = 'DATE_FORMAT'
     OUTPUT_WIND = 'OUTPUT_WIND'
     OUTPUT_PRESSURE = 'OUTPUT_PRESSURE'
 
+    # COMMAND_LINE = '"C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker" run -v {output_dir}:/home/src/output -v {input_dir}:/home/src/input_2 olivierdalang/tcrm mpirun -np 16 python tcevent.py -v -c input_2/{config_file}'
     COMMAND_LINE = '"C:\\Program Files\\Docker\\Docker\\resources\\bin\\docker" run -v {output_dir}:/home/src/output -v {input_dir}:/home/src/input_2 olivierdalang/tcrm python tcevent.py -v -c input_2/{config_file}'
-
 
     def initAlgorithm(self, config):
 
@@ -110,6 +111,9 @@ class TCRMAlgorithm(QgsProcessingAlgorithm):
         )
         self.addParameter(
             QgsProcessingParameterField(self.FIELD_RMAX, self.tr('Rmax field'), parentLayerParameterName=self.INPUT)
+        )
+        self.addParameter(
+            QgsProcessingParameterString(self.DATE_FORMAT, self.tr('Date format'), defaultValue='%Y%m%d%H')
         )
         
         self.addParameter(
@@ -128,6 +132,7 @@ class TCRMAlgorithm(QgsProcessingAlgorithm):
         field_date = self.parameterAsString(parameters, self.FIELD_DATE, context)
         field_pressure = self.parameterAsString(parameters, self.FIELD_PRESSURE, context)
         field_rmax = self.parameterAsString(parameters, self.FIELD_RMAX, context)
+        date_format = self.parameterAsString(parameters, self.DATE_FORMAT, context)
         output_wind = self.parameterAsOutputLayer(parameters, self.OUTPUT_WIND, context)
         output_pressure = self.parameterAsOutputLayer(parameters, self.OUTPUT_PRESSURE, context)
         
@@ -147,61 +152,57 @@ class TCRMAlgorithm(QgsProcessingAlgorithm):
         output_folder.setAutoRemove(False)
         output_folder = output_folder.path()
 
+        # debug
+
         input_folder = 'C:\\Users\\Olivier\\Desktop\\testinput'
         output_folder = 'C:\\Users\\Olivier\\Desktop\\testoutput'
-
-        # Config	asWktPolygon
-        QgsMessageLog.logMessage("*"*80)
-        QgsMessageLog.logMessage(input_source.sourceExtent().asWktPolygon())
-        extent = crsTransform.transform(input_source.sourceExtent())
-        QgsMessageLog.logMessage(str(extent))
-        gridLimit = {'xMin':extent.xMinimum(),'xMax':extent.xMaximum(), 'yMin':extent.yMinimum(), 'yMax':extent.yMaximum()}
+        # base = os.path.dirname(os.path.abspath(__file__))
+        # shutil.copy(os.path.join(base,'tcrm.ini'),os.path.join(input_folder,'tcrm.ini'))
+        # shutil.copy(os.path.join(base,'tcrm.csv'),os.path.join(input_folder,'tcrm.csv'))
 
         # Load default config and adapt it
 
-        config = configparser.ConfigParser()
+        config = configparser.RawConfigParser()
         config.read(os.path.join(os.path.dirname(os.path.abspath(__file__)),'tcrm.ini'))
 
+        extent = crsTransform.transform(input_source.sourceExtent())
+        gridLimit = {'xMin':extent.xMinimum(),'xMax':extent.xMaximum(), 'yMin':extent.yMinimum(), 'yMax':extent.yMaximum()}
         config['Region']['gridLimit'] = str(gridLimit)
-
-        # TODO : adapt the config
+        config['Logging']['LogLevel'] = 'DEBUG'
+        config['BDECK']['DateFormat'] = date_format
 
         # Write config and CSV to output folder
         input_ini = os.path.join(input_folder,'tcrm.ini')
-        config.write(open(input_ini, 'w'))
+        ini_file = open(input_ini, 'w')
+        config.write(ini_file)
+        ini_file.close()
 
         input_csv = os.path.join(input_folder,'tcrm.csv')
-        input_csv_file = open(input_csv, 'w')
+        csv_file = open(input_csv, 'w')
         
-
-        for i,f in enumerate(input_source.getFeatures()):
+        features = sorted(input_source.getFeatures(), key=lambda f: f.attribute(field_date))
+        for f in features:
             point = f.geometry()
             point.transform(crsTransform)
             # we write the following columns as configured in ini
             line = '{skip},{num},{date},{skip},{skip},{lat},{lon},{skip},{pressure},{rmax}\n'.format(
-                skip='',
-                num=i,
+                skip='SKIP',
+                num=1,
                 date=f.attribute(field_date),
                 lat=point.asPoint().y(),
                 lon=point.asPoint().x(),
                 pressure=f.attribute(field_pressure),
                 rmax=f.attribute(field_rmax),
             )
-            input_csv_file.write(line)
-        input_csv_file.close()
-        
+            csv_file.write(line)
+        csv_file.close()
 
         # Run the TCRM model
         command = self.COMMAND_LINE.format(output_dir=output_folder, input_dir=input_folder, config_file='tcrm.ini')
-        QgsMessageLog.logMessage("Running "+str(command))
-        result = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        # QgsMessageLog.logMessage("returncode :")
-        # QgsMessageLog.logMessage(str(result.returncode))
-        # QgsMessageLog.logMessage("stdout :")
-        # QgsMessageLog.logMessage(str(result.stdout))
-        # QgsMessageLog.logMessage("stderr :")
-        # QgsMessageLog.logMessage(str(result.stderr))
-
+        feedback.pushInfo("Running "+command)
+        process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+        for line in process.stdout:
+            feedback.pushInfo(line.decode('utf-8'))
 
         # Get the output filename
         output_netcdf = os.path.join(output_folder,'windfield','gust.001-00001.nc')
@@ -211,12 +212,12 @@ class TCRMAlgorithm(QgsProcessingAlgorithm):
 
         # Export the maximum winds
         command = 'gdal_translate -ot float32 -unscale -CO COMPRESS=deflate NETCDF:"{}":vmax {}'.format(output_netcdf, output_wind)
-        QgsMessageLog.logMessage("Running "+str(command))
+        feedback.pushInfo("Running "+command)
         subprocess.run(command, shell=True)
 
         # Export the sea level pressure
         command = 'gdal_translate -ot float32 -unscale -CO COMPRESS=deflate NETCDF:"{}":slp {}'.format(output_netcdf, output_pressure)
-        QgsMessageLog.logMessage("Running "+str(command))
+        feedback.pushInfo("Running "+command)
         subprocess.run(command, shell=True)
 
 
