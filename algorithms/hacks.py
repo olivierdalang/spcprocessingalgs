@@ -61,6 +61,9 @@ from .base import SpcAlgorithm
 
 
 class PointsToPathsWithM(SpcAlgorithm):
+    '''
+    TODO : remove this (is doable with "Set M value algorithm")
+    '''
 
     INPUT = 'INPUT'
     GROUP_FIELD = 'GROUP_FIELD'
