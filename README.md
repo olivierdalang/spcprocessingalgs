@@ -2,6 +2,8 @@
 
 This is a QGIS plugin adding some processing algorithms used at SPC.
 
+test 2
+
 It currently contains the following groups :
 - `project` : a series of algorithms to work on qgs project files, including PDF exports
 - `tcrm` : integration of the TCRM
