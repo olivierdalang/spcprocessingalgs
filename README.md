@@ -15,3 +15,4 @@ This is work in progress and is highly unstable. It should only be used for test
 Download the source and install it from the QGIS plugin manager (using install from zip).
 
 test1
+test2
